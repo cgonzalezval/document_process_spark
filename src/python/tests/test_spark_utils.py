@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
+import pytest
 import pandas as pd
 import pyspark.sql.functions as sf
-from ..app.spark_utils import flatten_df
+from ..app.spark_utils import flatten_df, normalize_column_names
 
 
 data = {
@@ -42,3 +43,14 @@ def test_flatten_schema_nested(spark):
     expected_output = [col for col in df.columns if col not in struct_cols + ["struct", "struct_2"]] + struct_cols
     assert result.columns == expected_output
     assert df.count() == result.count()
+
+
+@pytest.mark.parametrize("input_names,expected_names", [
+    (["name", "age", "_value_"], ["name", "age", "_value_"]),
+    (["nA Me", "age ", " _value_ "], ["name", "age", "_value_"]),
+    (["nA Me", "age ", " _value_.other"], ["name", "age", "_value__other"]),
+])
+def test_normalize_column_names(spark, input_names, expected_names):
+    df = spark.createDataFrame(pd.DataFrame({name: [1, 2, 3] for name in input_names}))
+    result = normalize_column_names(df)
+    assert result.columns == expected_names
