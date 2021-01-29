@@ -2,7 +2,7 @@
 import pytest
 import pandas as pd
 import pyspark.sql.functions as sf
-from ..app.spark_utils import flatten_df, normalize_column_names
+from ..app.spark_utils import flatten_df, normalize_column_names, udf_get_text_from_col
 
 
 data = {
@@ -54,3 +54,82 @@ def test_normalize_column_names(spark, input_names, expected_names):
     df = spark.createDataFrame(pd.DataFrame({name: [1, 2, 3] for name in input_names}))
     result = normalize_column_names(df)
     assert result.columns == expected_names
+
+
+@pytest.mark.parametrize("input_values", [
+    (["name", "age", "_value_"]),
+    ([1, 2, 3]),
+    ([True, False, True]),
+])
+def test_get_text_from_col(spark, input_values):
+    """Check transformation in simple columns"""
+    df = spark.createDataFrame(pd.DataFrame({"column": input_values}))
+    result = df.withColumn("result", udf_get_text_from_col(sf.col("column")))
+    result_p = result.select("result").toPandas()
+    expected_p = pd.DataFrame({"result": [str(value) for value in input_values]})
+    pd.testing.assert_frame_equal(result_p, expected_p)
+
+
+@pytest.mark.parametrize("input_values", [
+    (["name", "age", "_value_"]),
+    ([1, 2, 3]),
+    ([True, False, True]),
+])
+def test_get_text_from_col_array(spark, input_values):
+    df = spark.createDataFrame(pd.DataFrame({"column": ["test"]}))
+    df = df.withColumn("array", sf.array(*[sf.lit(value) for value in input_values]))
+    result = df.withColumn("result", udf_get_text_from_col(sf.col("array")))
+    result_p = result.select("result").toPandas()
+    assert result_p.iloc[[0, 0]].values[0] == " ".join([str(value) for value in input_values])
+
+
+@pytest.mark.parametrize("input_values", [
+    (["name", "age", "_value_"]),
+    ([1, 2, 3]),
+    ([True, False, True]),
+])
+def test_get_text_from_col_map(spark, input_values):
+    df = spark.createDataFrame(pd.DataFrame({"column": ["test"]}))
+    df = df.withColumn("map", sf.create_map(
+        sf.lit("a"), sf.lit(input_values[0]),
+        sf.lit("b"), sf.lit(input_values[1]),
+        sf.lit("c"), sf.lit(input_values[2]),
+    ))
+    result = df.withColumn("result", udf_get_text_from_col(sf.col("map")))
+    result_p = result.select("result").toPandas()
+    assert result_p.iloc[[0, 0]].values[0] == " ".join([str(value) for value in input_values])
+
+
+@pytest.mark.parametrize("input_values", [
+    (["name", "age", "_value_"]),
+    ([1, 2, 3]),
+    ([True, False, True]),
+])
+def test_get_text_from_col_struct(spark, input_values):
+    df = spark.createDataFrame(pd.DataFrame({"column": ["test"]}))
+    df = df.withColumn("struct", sf.struct(
+        sf.lit(input_values[0]).alias("a"),
+        sf.lit(input_values[1]).alias("b"),
+        sf.lit(input_values[2]).alias("c"),
+    ))
+    result = df.withColumn("result", udf_get_text_from_col(sf.col("struct")))
+    result_p = result.select("result").toPandas()
+    assert result_p.iloc[[0, 0]].values[0] == " ".join([str(value) for value in input_values])
+
+
+@pytest.mark.parametrize("input_values", [
+    (["name", "age", "_value_"]),
+    ([1, 2, 3]),
+    ([True, False, True]),
+])
+def test_get_text_from_col_array_struct(spark, input_values):
+    df = spark.createDataFrame(pd.DataFrame({"column": ["test"]}))
+    struct = sf.struct(
+        sf.lit(input_values[0]).alias("a"),
+        sf.lit(input_values[1]).alias("b"),
+        sf.lit(input_values[2]).alias("c"),
+    )
+    df = df.withColumn("array_struct", sf.array(struct, struct))
+    result = df.withColumn("result", udf_get_text_from_col(sf.col("array_struct")))
+    result_p = result.select("result").toPandas()
+    assert result_p.iloc[[0, 0]].values[0] == " ".join([str(value) for value in input_values] * 2)

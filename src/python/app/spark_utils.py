@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pyspark.sql.functions as sf
 from pyspark.sql import DataFrame
-from pyspark.sql.types import StructType
+from pyspark.sql.types import StructType, StringType, Row
 
 
 def flatten_df(df) -> DataFrame:
@@ -33,3 +33,17 @@ def normalize_column_names(df: DataFrame) -> DataFrame:
         list_new_names.append(new_name)
     df = df.toDF(*list_new_names)
     return df
+
+
+def get_text_from_col(row):
+    if isinstance(row, list):  # ArrayType
+        return " ".join([get_text_from_col(item) for item in row])
+    elif isinstance(row, Row):  # StrucType. _<name> fields are xml attributes so they are omitted
+        return " ".join([get_text_from_col(value) for key, value in row.asDict().items() if not key.startswith("_")])
+    elif isinstance(row, dict):  # MapType
+        return " ".join([get_text_from_col(value) for _, value in row.items()])
+    else:
+        return str(row)
+
+
+udf_get_text_from_col = sf.udf(lambda x: get_text_from_col(x), StringType())
