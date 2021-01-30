@@ -33,6 +33,11 @@ def sanitize_xml(data: str) -> str:
 
                 p_end = data.find("</p>")
                 text_to_sanitize = data[:p_end]
+                # Check ig there are nested <p>
+                num_sub_p = text_to_sanitize.count("<p ") + text_to_sanitize.count("<p>")
+                for n in range(num_sub_p):
+                    p_end = data.find("</p>", p_end + 4)
+                text_to_sanitize = data[:p_end]
                 text_to_sanitize = re.sub("<[^>]*>", "", text_to_sanitize, flags=re.DOTALL)
                 output_data += text_to_sanitize + "</p>"
                 data = data[p_end + 4:]  # 4 positions for </p>
