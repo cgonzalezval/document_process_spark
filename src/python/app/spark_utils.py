@@ -35,15 +35,17 @@ def normalize_column_names(df: DataFrame) -> DataFrame:
     return df
 
 
-def get_text_from_col(row):
-    if isinstance(row, list):  # ArrayType
-        return " ".join([get_text_from_col(item) for item in row])
-    elif isinstance(row, Row):  # StrucType. _<name> fields are xml attributes so they are omitted
-        return " ".join([get_text_from_col(value) for key, value in row.asDict().items() if not key.startswith("_")])
-    elif isinstance(row, dict):  # MapType
-        return " ".join([get_text_from_col(value) for _, value in row.items()])
+def get_text_from_col(value):
+    if value is None:
+        return ""
+    elif isinstance(value, list):  # ArrayType
+        return " ".join([get_text_from_col(item) for item in value])
+    elif isinstance(value, Row):  # StrucType. _<name> fields are xml attributes so they are omitted
+        return " ".join([get_text_from_col(value) for key, value in value.asDict().items() if not key.startswith("_")])
+    elif isinstance(value, dict):  # MapType
+        return " ".join([get_text_from_col(value) for _, value in value.items()])
     else:
-        return str(row)
+        return str(value)
 
 
 udf_get_text_from_col = sf.udf(lambda x: get_text_from_col(x), StringType())
