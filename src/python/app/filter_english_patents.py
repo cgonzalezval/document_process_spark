@@ -9,7 +9,7 @@ from constants import PARQUET_CONTAINER_NAME, PARQUET_STORAGE_NAME, PARQUET_OUTP
     FILTERED_STORAGE_NAME, FILTERED_STORAGE_KEY, FILTERED_CONTAINER_NAME, FILTERED_OUTPUT_FOLDER
 from launcher import logger
 from utils import create_spark_session
-from spark_utils import flatten_df
+from spark_utils import flatten_df, udf_get_text_from_col
 from azure_utils import create_if_not_exists_container
 
 
@@ -20,6 +20,7 @@ NUM_OUTPUT_FILES = 50  # TODO parametrize
 OUTPUT_COL_ENGLISH_ABSTRACT = "english_abstract"
 OUTPUT_COL_ENGLISH_TITLE = "english_title"
 OUTPUT_COL_ENGLISH_DESCRIPTION = "english_description"
+OUTPUT_COL_ENGLISH_TEXT = "english_text"
 
 
 def run_filter_english_patents(spark: SparkSession):
@@ -46,6 +47,7 @@ def process(df: DataFrame) -> DataFrame:
     df = filter_abstracts(df)
     df = filter_titles(df)
     df = process_descriptions(df)
+    df = create_text_column(df)
     df = flatten_df(df)  # Flatten data to improve performance in analytic use
     return df
 
@@ -96,6 +98,21 @@ def process_descriptions(df: DataFrame) -> DataFrame:
     col = sf.when(sf.col("num_english_description") >= 0,
                   col_titles.getItem(sf.col("num_english_description"))).otherwise(col_titles.getItem(0))
     df = df.withColumn(OUTPUT_COL_ENGLISH_DESCRIPTION, col)
+    return df
+
+
+def create_text_column(df: DataFrame) -> DataFrame:
+    """Creates a column with all the english text of the patent"""
+    col_text_title = sf.col(f"{OUTPUT_COL_ENGLISH_TITLE}._VALUE")  # Text
+    col_text_abstract = sf.col(f"{OUTPUT_COL_ENGLISH_ABSTRACT}.p")  # Array
+    col_text_description = sf.col(f"{OUTPUT_COL_ENGLISH_DESCRIPTION}.p")  # Array
+    df = df.withColumn("title_text", udf_get_text_from_col(col_text_title))
+    df = df.withColumn("abstract_text", udf_get_text_from_col(col_text_abstract))
+    df = df.withColumn("description_text", udf_get_text_from_col(col_text_description))
+    df = df.withColumn(OUTPUT_COL_ENGLISH_TEXT,
+                       sf.concat_ws(" ", sf.col("title_text"), sf.col("abstract_text"), sf.col("description_text")))
+    df = df.withColumn(OUTPUT_COL_ENGLISH_TEXT,
+                       sf.lower(sf.regexp_replace(OUTPUT_COL_ENGLISH_TEXT, "[^a-zA-Z\\s]", "")))
     return df
 
 

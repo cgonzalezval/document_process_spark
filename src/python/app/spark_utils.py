@@ -40,8 +40,9 @@ def get_text_from_col(value):
         return ""
     elif isinstance(value, list):  # ArrayType
         return " ".join([get_text_from_col(item) for item in value])
-    elif isinstance(value, Row):  # StrucType. _<name> fields are xml attributes so they are omitted
-        return " ".join([get_text_from_col(value) for key, value in value.asDict().items() if not key.startswith("_")])
+    elif isinstance(value, Row):  # StrucType. _<name> fields are xml attributes so they are omitted unless it is _VALUE
+        return " ".join([get_text_from_col(value) for key, value in value.asDict().items() if
+                         not (key.startswith("_") and key != "_VALUE")])
     elif isinstance(value, dict):  # MapType
         return " ".join([get_text_from_col(value) for _, value in value.items()])
     else:
