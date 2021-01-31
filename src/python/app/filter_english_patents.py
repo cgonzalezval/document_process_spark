@@ -17,6 +17,10 @@ LOGGER_CHILD_NAME = "FILTER_ENGLISH_PATENTS"
 logger = logger.getChild(LOGGER_CHILD_NAME)
 NUM_OUTPUT_FILES = 50  # TODO parametrize
 
+OUTPUT_COL_ENGLISH_ABSTRACT = "english_abstract"
+OUTPUT_COL_ENGLISH_TITLE = "english_title"
+OUTPUT_COL_ENGLISH_DESCRIPTION = "english_description"
+
 
 def run_filter_english_patents(spark: SparkSession):
     logger.info("Starting execution")
@@ -56,8 +60,8 @@ def filter_abstracts(df: DataFrame) -> DataFrame:
     df = df.withColumn("num_english_abstract", get_num_english_element(col_abstract))
     cond_abstract_language = (~sf.col("num_english_abstract").isNull()) & (sf.col("num_english_abstract") >= 0)
     df = df.filter(cond_abstract_language)
-    df = df.withColumn("english_abstract", col_abstract.getItem(sf.col("num_english_abstract")))
-    cond_abstract_text_not_null = sf.size(sf.col("english_abstract.p")) > 0
+    df = df.withColumn(OUTPUT_COL_ENGLISH_ABSTRACT, col_abstract.getItem(sf.col("num_english_abstract")))
+    cond_abstract_text_not_null = sf.size(sf.col(f"{OUTPUT_COL_ENGLISH_ABSTRACT}.p")) > 0
     df = df.filter(cond_abstract_text_not_null)
     return df
 
@@ -72,7 +76,7 @@ def filter_titles(df: DataFrame) -> DataFrame:
     df = df.withColumn("num_english_title", get_num_english_element(col_titles))
     cond_title_language = (~sf.col("num_english_title").isNull()) & (sf.col("num_english_title") >= 0)
     df = df.filter(cond_title_language)
-    df = df.withColumn("english_title", col_titles.getItem(sf.col("num_english_title")))
+    df = df.withColumn(OUTPUT_COL_ENGLISH_TITLE, col_titles.getItem(sf.col("num_english_title")))
     return df
 
 
@@ -91,7 +95,7 @@ def process_descriptions(df: DataFrame) -> DataFrame:
     # We choose english version if possible and if not the original one
     col = sf.when(sf.col("num_english_description") >= 0,
                   col_titles.getItem(sf.col("num_english_description"))).otherwise(col_titles.getItem(0))
-    df = df.withColumn("english_description", col)
+    df = df.withColumn(OUTPUT_COL_ENGLISH_DESCRIPTION, col)
     return df
 
 
