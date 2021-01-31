@@ -35,7 +35,7 @@ def process(df: DataFrame) -> DataFrame:
 
 def save(df: DataFrame, num_files: int):
     output_container_path = f"wasbs://{PARQUET_CONTAINER_NAME}@{PARQUET_STORAGE_NAME}.blob.core.windows.net"
-    output_blob_folder = f"{output_container_path}/"
+    output_blob_folder = f"{output_container_path}/output_data/"
     logger.info(f"Saving data into {output_blob_folder}")
     df.coalesce(num_files).write.mode("overwrite").parquet(output_blob_folder)
     logger.info(f"Data saved!")
