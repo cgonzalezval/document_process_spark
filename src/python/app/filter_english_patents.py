@@ -41,39 +41,32 @@ def process(df: DataFrame) -> DataFrame:
     """Filter all patents without at least one title and abstract in English and flattens the schema of the result"""
     df = filter_abstracts(df)
     df = filter_titles(df)
+    df = process_descriptions(df)
     df = flatten_df(df)  # Flatten data to improve performance in analytic use
     return df
 
 
 def filter_abstracts(df: DataFrame) -> DataFrame:
     """
-    Removes all patents without at least one english abstract and overwrites the column with only the english version
+    Removes all patents without at least one english abstract and creates a column with only the english version
     """
-    assert isinstance(df.select("abstract").schema.fields[0].dataType, ArrayType)
-    abstracts = df.select("_file", sf.explode_outer("abstract").alias("abstract"))
-    abstracts_p = abstracts.groupby("abstract._lang").agg(sf.count("_file").alias("num")).toPandas()
-    logger.info(f"Distribution of languages in abstracts:\n{abstracts_p.to_string()}")
-    # TODO add a language detector for abstracts without _lang info
+    log_language_distribution(df=df, field_name="abstract")
 
     col_abstract = sf.col("abstract")
     df = df.withColumn("num_english_abstract", get_num_english_element(col_abstract))
     cond_abstract_language = (~sf.col("num_english_abstract").isNull()) & (sf.col("num_english_abstract") >= 0)
     df = df.filter(cond_abstract_language)
-    df = df.withColumn("abstract", col_abstract.getItem(sf.col("num_english_abstract")))
-    cond_abstract_text_not_null = sf.size(sf.col("abstract.p")) > 0
+    df = df.withColumn("english_abstract", col_abstract.getItem(sf.col("num_english_abstract")))
+    cond_abstract_text_not_null = sf.size(sf.col("english_abstract.p")) > 0
     df = df.filter(cond_abstract_text_not_null)
     return df
 
 
 def filter_titles(df: DataFrame) -> DataFrame:
     """
-    Removes all patents without at least one english title and overwrites the column with only the english version
+    Removes all patents without at least one english title and creates a column with only the english version
     """
-    assert isinstance(df.select("bibliographic-data.invention-title").schema.fields[0].dataType, ArrayType)
-    titles = df.select("_file", sf.explode_outer("bibliographic-data.invention-title").alias("title"))
-    titles_p = titles.groupby("title._lang").agg(sf.count("_file").alias("num")).toPandas()
-    logger.info(f"Distribution of languages in titles:\n{titles_p.to_string()}")
-    # TODO add a language detector for titles without _lang info
+    log_language_distribution(df=df, field_name="bibliographic-data.invention-title")
 
     col_titles = sf.col("bibliographic-data.invention-title")
     df = df.withColumn("num_english_title", get_num_english_element(col_titles))
@@ -81,6 +74,33 @@ def filter_titles(df: DataFrame) -> DataFrame:
     df = df.filter(cond_title_language)
     df = df.withColumn("english_title", col_titles.getItem(sf.col("num_english_title")))
     return df
+
+
+def process_descriptions(df: DataFrame) -> DataFrame:
+    """
+    Creates a column with only english descriptions.
+    In case of non english descriptions several versions of the description are provided.
+      <description format="machine_translation" lang="en" id="desc_en">...</description>
+      <description format="original" lang="fr" id="desc_fr">...</description>
+    """
+    log_language_distribution(df=df, field_name="description")
+
+    col_titles = sf.col("description")
+    df = df.withColumn("num_english_description", get_num_english_element(col_titles))
+    # We are not filtering patents without english description.
+    # We choose english version if possible and if not the original one
+    col = sf.when(sf.col("num_english_description") >= 0,
+                  col_titles.getItem(sf.col("num_english_description"))).otherwise(col_titles.getItem(0))
+    df = df.withColumn("english_description", col)
+    return df
+
+
+def log_language_distribution(df: DataFrame, field_name: str):
+    assert isinstance(df.select(field_name).schema.fields[0].dataType, ArrayType)
+    languages = df.select("_file", sf.explode_outer(field_name).alias("target_field"))
+    languages_p = languages.groupby("target_field._lang").agg(sf.count("_file").alias("num")).toPandas()
+    logger.info(f"Distribution of languages in {field_name}:\n{languages_p.to_string()}")
+    # TODO add a language detector for titles without _lang info
 
 
 @sf.udf(IntegerType())
