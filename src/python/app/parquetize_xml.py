@@ -3,7 +3,8 @@
 Script to read the santized xmls and store the output as parquet files
 """
 from pyspark.sql import DataFrame, SparkSession
-from constants import SANITIZED_STORAGE_NAME, SANITIZED_CONTAINER_NAME, PARQUET_CONTAINER_NAME, PARQUET_STORAGE_NAME
+from constants import SANITIZED_STORAGE_NAME, SANITIZED_CONTAINER_NAME, PARQUET_CONTAINER_NAME, PARQUET_STORAGE_NAME, \
+    PARQUET_OUTPUT_FOLDER
 from launcher import logger
 from utils import create_spark_session
 
@@ -35,7 +36,7 @@ def process(df: DataFrame) -> DataFrame:
 
 def save(df: DataFrame, num_files: int):
     output_container_path = f"wasbs://{PARQUET_CONTAINER_NAME}@{PARQUET_STORAGE_NAME}.blob.core.windows.net"
-    output_blob_folder = f"{output_container_path}/output_data/"
+    output_blob_folder = f"{output_container_path}/{PARQUET_OUTPUT_FOLDER}/"
     logger.info(f"Saving data into {output_blob_folder}")
     df.coalesce(num_files).write.mode("overwrite").parquet(output_blob_folder)
     logger.info(f"Data saved!")
