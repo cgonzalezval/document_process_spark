@@ -19,10 +19,11 @@ def run_parquetizer(spark: SparkSession):
     result = process(df)
     save(df=result, num_files=NUM_OUTPUT_FILES)
     logger.info("Process finished!")
+    return result
 
 
 def read(spark: SparkSession) -> DataFrame:
-    input_path = f"wasbs://{SANITIZED_CONTAINER_NAME}@{SANITIZED_STORAGE_NAME}.blob.core.windows.net"
+    input_path = f"wasbs://{SANITIZED_CONTAINER_NAME}@{SANITIZED_STORAGE_NAME}.blob.core.windows.net/"
     logger.info(f"Reading from: {input_path}")
     df = spark.read.format("com.databricks.spark.xml").option("rowTag", "questel-patent-document").option(
         "mode", "DROPMALFORMED").load(input_path)
