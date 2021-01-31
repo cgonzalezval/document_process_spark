@@ -15,8 +15,10 @@ def zipdir(path: str, ziph: zipfile.ZipFile):
                 ziph.write(os.path.join(root, file), file)
 
 
-execute("dbfs rm -r dbfs:/FileStore/code")
-execute("dbfs mkdirs dbfs:/FileStore/code")
+folders = ["code", "azure_scripts"]
+for folder in folders:
+    execute(f"dbfs rm -r dbfs:/FileStore/{folder}")
+    execute(f"dbfs mkdirs dbfs:/FileStore/{folder}")
 
 # Zip file with all the code to be distributed in the spark cluster
 target_folder = "../app/"
@@ -34,4 +36,11 @@ for file in os.listdir(target_folder):
         input_file = os.path.join(target_folder, file)
         print(f"Uploading: {input_file}")
         execute(f"dbfs cp {input_file} dbfs:/FileStore/code/{file}")
+
+target_folder = "../azure_scripts/"
+for file in os.listdir(target_folder):
+    if file.endswith(".py") or file.endswith(".zip") or file.endswith(".sh"):
+        input_file = os.path.join(target_folder, file)
+        print(f"Uploading: {input_file}")
+        execute(f"dbfs cp {input_file} dbfs:/FileStore/azure_scripts/{file}")
 print("Terminado!")
