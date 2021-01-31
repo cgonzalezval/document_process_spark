@@ -40,7 +40,7 @@ def sanitize_xml(data: str) -> str:
                 text_to_sanitize = data[:p_end]
                 text_to_sanitize = re.sub("<[^>]*>", "", text_to_sanitize, flags=re.DOTALL)
                 # & entity names are corrupted and dropped when parsing the xml
-                text_to_sanitize = re.sub("&", "", text_to_sanitize, flags=re.DOTALL)
+                text_to_sanitize = text_to_sanitize.replace("&", "")
                 if "CDATA" not in text_to_sanitize:
                     # ]]> only can be used as end of a CDATA.
                     # In any other case is an error and the xml parser will drop the register
@@ -54,7 +54,3 @@ def sanitize_xml(data: str) -> str:
             output_data += data
 
     return output_data
-
-# data[p_init + 2]
-# data[:p_init + 2]
-# data[p_init + 2:]
