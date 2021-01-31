@@ -28,7 +28,7 @@ def test_flatten_schema(spark):
     df = spark.createDataFrame(df_p)
     df = df.withColumn("struct", sf.struct(sf.lit("a").alias("name"), sf.lit("b").alias("age")))
     result = flatten_df(df)
-    expected_output = [col for col in df.columns if col not in ["struct"]] + ["struct.name", "struct.age"]
+    expected_output = [col for col in df.columns if col not in ["struct"]] + ["struct_name", "struct_age"]
     assert result.columns == expected_output
     assert df.count() == result.count()
 
@@ -39,7 +39,7 @@ def test_flatten_schema_nested(spark):
     df = df.withColumn("struct", sf.struct(sf.lit("a").alias("name"), sf.lit("b").alias("age")))
     df = df.withColumn("struct_2", sf.struct(sf.col("struct"), sf.lit("b").alias("other")))
     result = flatten_df(df)
-    struct_cols = ["struct.name", "struct.age"] + ["struct_2.struct.name", "struct_2.struct.age", "struct_2.other"]
+    struct_cols = ["struct_name", "struct_age"] + ["struct_2_struct_name", "struct_2_struct_age", "struct_2_other"]
     expected_output = [col for col in df.columns if col not in struct_cols + ["struct", "struct_2"]] + struct_cols
     assert result.columns == expected_output
     assert df.count() == result.count()

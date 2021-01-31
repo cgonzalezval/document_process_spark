@@ -18,7 +18,7 @@ def flatten_schema(schema: DataFrame.schema, prefix=None):
         if isinstance(dtype, StructType):
             fields += flatten_schema(dtype, prefix=name)
         else:
-            fields.append(sf.col(name).alias(name))
+            fields.append(sf.col(name).alias(name.replace(".", "_")))
     return fields
 
 
