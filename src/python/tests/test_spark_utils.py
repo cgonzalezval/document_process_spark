@@ -115,6 +115,14 @@ def test_get_text_from_col_struct(spark, input_values):
     result = df.withColumn("result", udf_get_text_from_col(sf.col("struct")))
     result_p = result.select("result").toPandas()
     assert result_p.iloc[[0, 0]].values[0] == " ".join([str(value) for value in input_values])
+    df = df.withColumn("struct", sf.struct(
+        sf.lit(input_values[0]).alias("a"),
+        sf.lit(input_values[1]).alias("_VALUE"),
+        sf.lit(input_values[2]).alias("_c"),
+    ))
+    result = df.withColumn("result", udf_get_text_from_col(sf.col("struct")))
+    result_p = result.select("result").toPandas()
+    assert result_p.iloc[[0, 0]].values[0] == " ".join([str(value) for value in input_values[:-1]])
 
 
 @pytest.mark.parametrize("input_values", [
