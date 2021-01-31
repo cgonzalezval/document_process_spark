@@ -15,6 +15,10 @@ from ..app.utils import sanitize_xml
     ("<p>text</p><desc>text2</br></desc>", "<p>text</p><desc>text2</br></desc>"),
     ("<pub>text</b></pub><p id=1>text2</br></p>", "<pub>text</b></pub><p id=1>text2</p>"),
     ("<p>text<p>otro</br></p></p>", "<p>textotro</p>"),
+    ("<p>text]]></p>", "<p>text</p>"),
+    ("<p>CDATA[text]]></p>", "<p>CDATA[text]]></p>"),
+    ("<p>Peter &br;</p>", "<p>Peter br;</p>"),
+    ("<p>Peter & Paul</p>", "<p>Peter  Paul</p>"),
 ])
 def test_sanitize_xml(input_data, expected):
     result = sanitize_xml(input_data)

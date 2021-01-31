@@ -39,6 +39,12 @@ def sanitize_xml(data: str) -> str:
                     p_end = data.find("</p>", p_end + 4)
                 text_to_sanitize = data[:p_end]
                 text_to_sanitize = re.sub("<[^>]*>", "", text_to_sanitize, flags=re.DOTALL)
+                # & entity names are corrupted and dropped when parsing the xml
+                text_to_sanitize = re.sub("&", "", text_to_sanitize, flags=re.DOTALL)
+                if "CDATA" not in text_to_sanitize:
+                    # ]]> only can be used as end of a CDATA.
+                    # In any other case is an error and the xml parser will drop the register
+                    text_to_sanitize = re.sub("]]>", "", text_to_sanitize, flags=re.DOTALL)
                 output_data += text_to_sanitize + "</p>"
                 data = data[p_end + 4:]  # 4 positions for </p>
             else:  # Cases to ignore i.e <pub
