@@ -15,10 +15,11 @@ import tarfile
 from typing import Tuple
 from azure.storage.blob import BlobServiceClient
 from azure.core.exceptions import ResourceExistsError
-from constants import INPUT_STORAGE_URL, INPUT_STORAGE_KEY, INPUT_CONTAINER_NAME, SANITIZED_STORAGE_KEY, \
-    SANITIZED_STORAGE_URL, SANITIZED_CONTAINER_NAME
+from constants import INPUT_STORAGE_NAME, INPUT_STORAGE_KEY, INPUT_CONTAINER_NAME, \
+    SANITIZED_STORAGE_NAME, SANITIZED_STORAGE_KEY, SANITIZED_CONTAINER_NAME
 from launcher import logger
 from utils import create_spark_session, sanitize_xml
+from azure_utils import get_account_url
 
 output_tmp_folder_blob = "./downloaded_blobs"
 output_tmp_folder_xmls = "./downloaded_xmls"
@@ -29,12 +30,15 @@ logger = logger.getChild(LOGGER_CHILD_NAME)
 
 def run_sanitize_data():
     logger.info("Starting execution")
-    service = BlobServiceClient(account_url=INPUT_STORAGE_URL, credential=INPUT_STORAGE_KEY)
+    input_url = get_account_url(INPUT_STORAGE_NAME)
+    service = BlobServiceClient(account_url=input_url, credential=INPUT_STORAGE_KEY)
     container = service.get_container_client(INPUT_CONTAINER_NAME)
-    output_service = BlobServiceClient(account_url=SANITIZED_STORAGE_URL, credential=SANITIZED_STORAGE_KEY)
+    output_url = get_account_url(SANITIZED_STORAGE_NAME)
+    output_service = BlobServiceClient(account_url=output_url, credential=SANITIZED_STORAGE_KEY)
     output_container = output_service.get_container_client(SANITIZED_CONTAINER_NAME)
     try:
         output_container.create_container()
+        logger.info(f"Creating container: {SANITIZED_CONTAINER_NAME}")
     except ResourceExistsError:
         logger.warning("Output container already exists")
 

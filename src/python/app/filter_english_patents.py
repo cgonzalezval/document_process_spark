@@ -5,11 +5,12 @@ Script to remove all non english patents. All documents have at least a title an
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import IntegerType, ArrayType
 from pyspark.sql import functions as sf
-from constants import PARQUET_CONTAINER_NAME, PARQUET_STORAGE_NAME, PARQUET_OUTPUT_FOLDER, FILTERED_STORAGE_NAME, \
-    FILTERED_CONTAINER_NAME, FILTERED_OUTPUT_FOLDER
+from constants import PARQUET_CONTAINER_NAME, PARQUET_STORAGE_NAME, PARQUET_OUTPUT_FOLDER, \
+    FILTERED_STORAGE_NAME, FILTERED_STORAGE_KEY, FILTERED_CONTAINER_NAME, FILTERED_OUTPUT_FOLDER
 from launcher import logger
 from utils import create_spark_session
 from spark_utils import flatten_df
+from azure_utils import create_if_not_exists_container
 
 
 LOGGER_CHILD_NAME = "FILTER_ENGLISH_PATENTS"
@@ -19,6 +20,8 @@ NUM_OUTPUT_FILES = 50  # TODO parametrize
 
 def run_filter_english_patents(spark: SparkSession):
     logger.info("Starting execution")
+    create_if_not_exists_container(storage_name=FILTERED_STORAGE_NAME, key=FILTERED_STORAGE_KEY,
+                                   container_name=FILTERED_CONTAINER_NAME, logger=logger)
     df = read(spark)
     result = process(df)
     save(df=result, num_files=NUM_OUTPUT_FILES)
