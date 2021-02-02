@@ -1,13 +1,18 @@
 # -*- coding: utf-8 -*-
 import findspark
 findspark.init()
+import os
 import pytest
-from ..app.utils import create_spark_session
+from utils import create_spark_session, zip_app, ZIP_FILE_NAME, get_app_path
 
 
 @pytest.fixture(scope='session')
 def spark():
-    config = {"spark.jars.packages": "com.databricks:spark-xml_2.11:0.11.0"}
+    config = {
+        "spark.jars.packages": "com.databricks:spark-xml_2.11:0.11.0",
+    }
     spark = create_spark_session("tests", local=True, config=config)
+    zip_app()
+    spark.sparkContext.addPyFile(os.path.join(get_app_path(), ZIP_FILE_NAME))
     yield spark
     spark.stop()

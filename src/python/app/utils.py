@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
+import os
 import re
+import zipfile
 from pyspark.sql import SparkSession
+
+ZIP_FILE_NAME = "app.zip"
 
 
 def create_spark_session(name: str, local=False, config=None) -> SparkSession:
@@ -54,3 +58,34 @@ def sanitize_xml(data: str) -> str:
             output_data += data
 
     return output_data
+
+
+def get_app_path() -> str:
+    """Returns the path to the app folder"""
+    path = os.path.dirname(os.path.realpath(__file__))
+    return path
+
+
+def get_resources_path():
+    """Returns the path to the resources folder"""
+    app_path = get_app_path()
+    path = os.path.abspath(os.path.join(app_path, "../../resources"))
+    return path
+
+
+def zip_app(target_file=ZIP_FILE_NAME):
+    """Zip file with all the code to be distributed in the spark cluster"""
+    def zipdir(path: str, ziph: zipfile.ZipFile):
+        for root, dirs, files in os.walk(path):
+            for file in files:
+                if file.endswith(".py"):
+                    ziph.write(os.path.join(root, file), file)
+
+    target_folder = get_app_path()
+    try:
+        os.remove(target_file)
+    except FileNotFoundError:
+        pass
+    zipf = zipfile.ZipFile(target_file, "w", zipfile.ZIP_DEFLATED)
+    zipdir(target_folder, zipf)
+    zipf.close()

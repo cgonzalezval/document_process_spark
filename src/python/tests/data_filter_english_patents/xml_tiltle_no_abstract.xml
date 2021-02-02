@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<questel-patent-document lang="en" file="6">
+  <bibliographic-data lang="en">
+    <invention-title format="original" lang="en" id="title_en">WELDING APPARATUS</invention-title>
+    <invention-title format="original" lang="fr" id="title_fr">APPAREIL A SOUDER</invention-title>
+    </bibliographic-data>
+  <description format="original" lang="en" id="desc_en">
+    <p num="1"> text description </p>
+    <p num="21">Other paragraph</p>
+  </description>
+  <expected_output>0</expected_output>
+</questel-patent-document>

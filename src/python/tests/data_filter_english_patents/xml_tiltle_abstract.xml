@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<questel-patent-document lang="en" file="4">
+  <bibliographic-data lang="en">
+    <invention-title format="original" lang="en" id="title_en">WELDING APPARATUS</invention-title>
+    <invention-title format="original" lang="fr" id="title_fr">APPAREIL A SOUDER</invention-title>
+    </bibliographic-data>
+  <abstract format="family_abstract" lang="en">
+    <p id="P-FAM-EN-00001" num="00001">
+      text
+    </p>
+    <p id="P-FAM-EN-00002" num="00002">
+      (From US4276689 A)
+    </p>
+  </abstract>
+  <abstract format="family_abstract" lang="es">
+    <p id="P-FAM-EN-00001" num="00001">texto</p>
+  </abstract>
+
+  <description format="original" lang="en" id="desc_en">
+    <p num="1"> text description </p>
+    <p num="21">Other paragraph</p>
+  </description>
+  <expected_output>1</expected_output>
+</questel-patent-document>
