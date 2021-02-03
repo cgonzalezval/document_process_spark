@@ -15,7 +15,7 @@ from azure_utils import create_if_not_exists_container
 
 LOGGER_CHILD_NAME = "FILTER_ENGLISH_PATENTS"
 logger = logger.getChild(LOGGER_CHILD_NAME)
-NUM_OUTPUT_FILES = 50  # TODO parametrize
+NUM_OUTPUT_FILES = 100  # TODO parametrize
 
 OUTPUT_COL_ENGLISH_ABSTRACT = "english_abstract"
 OUTPUT_COL_ENGLISH_TITLE = "english_title"
