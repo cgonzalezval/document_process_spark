@@ -23,6 +23,7 @@ OUTPUT_COL_ENGLISH_CLAIMS = "english_claims"
 OUTPUT_COL_ENGLISH_TITLE_TEXT = "title_text"
 OUTPUT_COL_ENGLISH_ABSTRACT_TEXT = "abstract_text"
 OUTPUT_COL_ENGLISH_DESCRIPTION_TEXT = "description_text"
+OUTPUT_COL_ENGLISH_CLAIMS_TEXT = "claims_text"
 OUTPUT_COL_ENGLISH_TEXT = "english_text"
 
 
@@ -116,9 +117,11 @@ def create_text_column(df: DataFrame) -> DataFrame:
     col_text_title = sf.col(f"{OUTPUT_COL_ENGLISH_TITLE}._VALUE")  # Text
     col_text_abstract = sf.col(f"{OUTPUT_COL_ENGLISH_ABSTRACT}.p")  # Array
     col_text_description = sf.col(f"{OUTPUT_COL_ENGLISH_DESCRIPTION}.p")  # Array
+    col_text_claims = sf.col(f"{OUTPUT_COL_ENGLISH_CLAIMS}.claim")  # Array
     df = df.withColumn(OUTPUT_COL_ENGLISH_TITLE_TEXT, udf_get_text_from_col(col_text_title))
     df = df.withColumn(OUTPUT_COL_ENGLISH_ABSTRACT_TEXT, udf_get_text_from_col(col_text_abstract))
     df = df.withColumn(OUTPUT_COL_ENGLISH_DESCRIPTION_TEXT, udf_get_text_from_col(col_text_description))
+    df = df.withColumn(OUTPUT_COL_ENGLISH_CLAIMS_TEXT, udf_get_text_from_col(col_text_claims))
     df = df.withColumn(OUTPUT_COL_ENGLISH_TEXT,
                        sf.concat_ws(" ", sf.col("title_text"), sf.col("abstract_text"), sf.col("description_text")))
     df = df.withColumn(OUTPUT_COL_ENGLISH_TEXT,
