@@ -20,6 +20,9 @@ OUTPUT_COL_ENGLISH_ABSTRACT = "english_abstract"
 OUTPUT_COL_ENGLISH_TITLE = "english_title"
 OUTPUT_COL_ENGLISH_DESCRIPTION = "english_description"
 OUTPUT_COL_ENGLISH_CLAIMS = "english_claims"
+OUTPUT_COL_ENGLISH_TITLE_TEXT = "title_text"
+OUTPUT_COL_ENGLISH_ABSTRACT_TEXT = "abstract_text"
+OUTPUT_COL_ENGLISH_DESCRIPTION_TEXT = "description_text"
 OUTPUT_COL_ENGLISH_TEXT = "english_text"
 
 
@@ -113,17 +116,18 @@ def create_text_column(df: DataFrame) -> DataFrame:
     col_text_title = sf.col(f"{OUTPUT_COL_ENGLISH_TITLE}._VALUE")  # Text
     col_text_abstract = sf.col(f"{OUTPUT_COL_ENGLISH_ABSTRACT}.p")  # Array
     col_text_description = sf.col(f"{OUTPUT_COL_ENGLISH_DESCRIPTION}.p")  # Array
-    df = df.withColumn("title_text", udf_get_text_from_col(col_text_title))
-    df = df.withColumn("abstract_text", udf_get_text_from_col(col_text_abstract))
-    df = df.withColumn("description_text", udf_get_text_from_col(col_text_description))
+    df = df.withColumn(OUTPUT_COL_ENGLISH_TITLE_TEXT, udf_get_text_from_col(col_text_title))
+    df = df.withColumn(OUTPUT_COL_ENGLISH_ABSTRACT_TEXT, udf_get_text_from_col(col_text_abstract))
+    df = df.withColumn(OUTPUT_COL_ENGLISH_DESCRIPTION_TEXT, udf_get_text_from_col(col_text_description))
     df = df.withColumn(OUTPUT_COL_ENGLISH_TEXT,
                        sf.concat_ws(" ", sf.col("title_text"), sf.col("abstract_text"), sf.col("description_text")))
     df = df.withColumn(OUTPUT_COL_ENGLISH_TEXT,
-                       sf.lower(sf.regexp_replace(OUTPUT_COL_ENGLISH_TEXT, "[^a-zA-Z\\s]", "")))
+                       sf.lower(sf.regexp_replace(OUTPUT_COL_ENGLISH_TEXT, "[^a-zA-Z\\s]", " ")))
     return df
 
 
 def log_language_distribution(df: DataFrame, field_name: str):
+    df = df.cache()
     if isinstance(df.select(field_name).schema.fields[0].dataType, ArrayType):
         languages = df.select("_file", sf.explode_outer(field_name).alias("target_field"))
     else:
