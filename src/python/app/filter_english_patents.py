@@ -9,7 +9,7 @@ from constants import PARQUET_CONTAINER_NAME, PARQUET_STORAGE_NAME, PARQUET_OUTP
     FILTERED_STORAGE_NAME, FILTERED_STORAGE_KEY, FILTERED_CONTAINER_NAME, FILTERED_OUTPUT_FOLDER
 from launcher import logger
 from utils import create_spark_session
-from spark_utils import flatten_df, udf_get_text_from_col
+from spark_utils import flatten_df, udf_get_text_from_col, save_parquet
 from azure_utils import create_if_not_exists_container
 
 
@@ -30,7 +30,8 @@ def run_filter_english_patents(spark: SparkSession):
                                    container_name=FILTERED_CONTAINER_NAME, logger=logger)
     df = read(spark)
     result = process(df)
-    save(df=result, num_files=NUM_OUTPUT_FILES)
+    save_parquet(df=result, num_files=NUM_OUTPUT_FILES, containter_name=FILTERED_CONTAINER_NAME,
+                 storage_name=FILTERED_STORAGE_NAME, output_folder=FILTERED_OUTPUT_FOLDER, logger=logger)
     logger.info("Process finished!")
     return result
 
@@ -153,14 +154,6 @@ def get_num_english_element(list_elements):
         except ValueError:  # If the struct doesn't have a _lang field
             pass
     return -1
-
-
-def save(df: DataFrame, num_files: int):
-    output_container_path = f"wasbs://{FILTERED_CONTAINER_NAME}@{FILTERED_STORAGE_NAME}.blob.core.windows.net"
-    output_blob_folder = f"{output_container_path}/{FILTERED_OUTPUT_FOLDER}/"
-    logger.info(f"Saving data into {output_blob_folder}")
-    df.coalesce(num_files).write.mode("overwrite").parquet(output_blob_folder)
-    logger.info(f"Data saved!")
 
 
 if __name__ == '__main__':

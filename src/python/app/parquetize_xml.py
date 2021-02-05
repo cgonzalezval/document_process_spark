@@ -6,6 +6,7 @@ from pyspark.sql import DataFrame, SparkSession
 from constants import SANITIZED_STORAGE_NAME, SANITIZED_CONTAINER_NAME, PARQUET_CONTAINER_NAME, \
     PARQUET_STORAGE_NAME, PARQUET_STORAGE_KEY, PARQUET_OUTPUT_FOLDER
 from launcher import logger
+from spark_utils import save_parquet
 from utils import create_spark_session
 from azure_utils import create_if_not_exists_container
 
@@ -20,7 +21,8 @@ def run_parquetizer(spark: SparkSession):
                                    container_name=PARQUET_CONTAINER_NAME, logger=logger)
     df = read(spark)
     result = process(df)
-    save(df=result, num_files=NUM_OUTPUT_FILES)
+    save_parquet(df=result, num_files=NUM_OUTPUT_FILES, logger=logger,
+                 containter_name=PARQUET_CONTAINER_NAME, storage_name=PARQUET_STORAGE_NAME, output_folder=PARQUET_OUTPUT_FOLDER)
     logger.info("Process finished!")
     return result
 
@@ -36,14 +38,6 @@ def read(spark: SparkSession) -> DataFrame:
 def process(df: DataFrame) -> DataFrame:
     # TODO ¿flatten fields?
     return df
-
-
-def save(df: DataFrame, num_files: int):
-    output_container_path = f"wasbs://{PARQUET_CONTAINER_NAME}@{PARQUET_STORAGE_NAME}.blob.core.windows.net"
-    output_blob_folder = f"{output_container_path}/{PARQUET_OUTPUT_FOLDER}/"
-    logger.info(f"Saving data into {output_blob_folder}")
-    df.coalesce(num_files).write.mode("overwrite").parquet(output_blob_folder)
-    logger.info(f"Data saved!")
 
 
 if __name__ == '__main__':

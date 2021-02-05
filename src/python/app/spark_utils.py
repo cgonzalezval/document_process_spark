@@ -49,4 +49,13 @@ def get_text_from_col(value):
         return str(value)
 
 
+def save_parquet(df: DataFrame, num_files: int, containter_name: str, storage_name: str, output_folder, logger):
+    """Saves the DataFrame into blob storage"""
+    output_container_path = f"wasbs://{containter_name}@{storage_name}.blob.core.windows.net"
+    output_blob_folder = f"{output_container_path}/{output_folder}/"
+    logger.info(f"Saving data into {output_blob_folder}")
+    df.coalesce(num_files).write.mode("overwrite").parquet(output_blob_folder)
+    logger.info(f"Data saved!")
+
+
 udf_get_text_from_col = sf.udf(lambda x: get_text_from_col(x), StringType())
