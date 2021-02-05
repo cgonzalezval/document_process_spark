@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 import pyspark.sql.functions as sf
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import StructType, StringType, Row
+from logging import Logger
+
+from azure_utils import create_if_not_exists_container
 
 
 def flatten_df(df) -> DataFrame:
@@ -49,12 +52,16 @@ def get_text_from_col(value):
         return str(value)
 
 
-def save_parquet(df: DataFrame, num_files: int, containter_name: str, storage_name: str, output_folder, logger):
+def save(spark: SparkSession, df: DataFrame, num_files: int, containter_name: str, storage_name: str,
+         output_folder: str, logger:Logger, output_format="parquet"):
     """Saves the DataFrame into blob storage"""
+    key = spark.conf.get(f"spark.hadoop.fs.azure.account.key.{storage_name}.blob.core.windows.net")
+    create_if_not_exists_container(storage_name=storage_name, key=key, container_name=containter_name, logger=logger)
+
     output_container_path = f"wasbs://{containter_name}@{storage_name}.blob.core.windows.net"
     output_blob_folder = f"{output_container_path}/{output_folder}/"
     logger.info(f"Saving data into {output_blob_folder}")
-    df.coalesce(num_files).write.mode("overwrite").parquet(output_blob_folder)
+    df.coalesce(num_files).write.format(output_format).mode("overwrite").parquet(output_blob_folder)
     logger.info(f"Data saved!")
 
 

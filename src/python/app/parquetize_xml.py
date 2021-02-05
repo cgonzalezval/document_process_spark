@@ -6,7 +6,7 @@ from pyspark.sql import DataFrame, SparkSession
 from constants import SANITIZED_STORAGE_NAME, SANITIZED_CONTAINER_NAME, PARQUET_CONTAINER_NAME, \
     PARQUET_STORAGE_NAME, PARQUET_STORAGE_KEY, PARQUET_OUTPUT_FOLDER
 from launcher import logger
-from spark_utils import save_parquet
+from spark_utils import save
 from utils import create_spark_session
 from azure_utils import create_if_not_exists_container
 
@@ -21,8 +21,8 @@ def run_parquetizer(spark: SparkSession):
                                    container_name=PARQUET_CONTAINER_NAME, logger=logger)
     df = read(spark)
     result = process(df)
-    save_parquet(df=result, num_files=NUM_OUTPUT_FILES, logger=logger,
-                 containter_name=PARQUET_CONTAINER_NAME, storage_name=PARQUET_STORAGE_NAME, output_folder=PARQUET_OUTPUT_FOLDER)
+    save(spark=spark, df=result, num_files=NUM_OUTPUT_FILES, containter_name=PARQUET_CONTAINER_NAME,
+         storage_name=PARQUET_STORAGE_NAME, output_folder=PARQUET_OUTPUT_FOLDER, logger=logger)
     logger.info("Process finished!")
     return result
 

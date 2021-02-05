@@ -9,13 +9,13 @@ from constants import PARQUET_CONTAINER_NAME, PARQUET_STORAGE_NAME, PARQUET_OUTP
     FILTERED_STORAGE_NAME, FILTERED_STORAGE_KEY, FILTERED_CONTAINER_NAME, FILTERED_OUTPUT_FOLDER
 from launcher import logger
 from utils import create_spark_session
-from spark_utils import flatten_df, udf_get_text_from_col, save_parquet
+from spark_utils import flatten_df, udf_get_text_from_col, save
 from azure_utils import create_if_not_exists_container
 
 
 LOGGER_CHILD_NAME = "FILTER_ENGLISH_PATENTS"
 logger = logger.getChild(LOGGER_CHILD_NAME)
-NUM_OUTPUT_FILES = 100  # TODO parametrize
+NUM_OUTPUT_FILES = 200  # TODO parametrize
 
 OUTPUT_COL_ENGLISH_ABSTRACT = "english_abstract"
 OUTPUT_COL_ENGLISH_TITLE = "english_title"
@@ -26,12 +26,10 @@ OUTPUT_COL_ENGLISH_TEXT = "english_text"
 
 def run_filter_english_patents(spark: SparkSession):
     logger.info("Starting execution")
-    create_if_not_exists_container(storage_name=FILTERED_STORAGE_NAME, key=FILTERED_STORAGE_KEY,
-                                   container_name=FILTERED_CONTAINER_NAME, logger=logger)
     df = read(spark)
     result = process(df)
-    save_parquet(df=result, num_files=NUM_OUTPUT_FILES, containter_name=FILTERED_CONTAINER_NAME,
-                 storage_name=FILTERED_STORAGE_NAME, output_folder=FILTERED_OUTPUT_FOLDER, logger=logger)
+    save(spark=spark, df=result, num_files=NUM_OUTPUT_FILES, containter_name=FILTERED_CONTAINER_NAME,
+         storage_name=FILTERED_STORAGE_NAME, output_folder=FILTERED_OUTPUT_FOLDER, logger=logger)
     logger.info("Process finished!")
     return result
 
@@ -71,6 +69,7 @@ def filter_abstracts(df: DataFrame) -> DataFrame:
     df = df.withColumn(OUTPUT_COL_ENGLISH_ABSTRACT, target_col.getItem(sf.col("num_english_abstract")))
     cond_abstract_text_not_null = sf.size(sf.col(f"{OUTPUT_COL_ENGLISH_ABSTRACT}.p")) > 0
     df = df.filter(cond_abstract_text_not_null)
+    df = df.drop("abstract")
     return df
 
 
@@ -88,6 +87,7 @@ def filter_titles(df: DataFrame) -> DataFrame:
     cond_title_language = (~sf.col("num_english_title").isNull()) & (sf.col("num_english_title") >= 0)
     df = df.filter(cond_title_language)
     df = df.withColumn(OUTPUT_COL_ENGLISH_TITLE, target_col.getItem(sf.col("num_english_title")))
+    df = df.drop("bibliographic-data.invention-title")
     return df
 
 
@@ -112,6 +112,7 @@ def process_descriptions_claims(df: DataFrame, input_field: str, output_field: s
     col = sf.when(sf.col(col_name_num_english) >= 0,
                   target_col.getItem(sf.col(col_name_num_english))).otherwise(target_col.getItem(0))
     df = df.withColumn(output_field, col)
+    df = df.drop(input_field)
     return df
 
 
