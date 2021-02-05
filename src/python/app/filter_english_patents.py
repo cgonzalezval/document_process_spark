@@ -40,6 +40,11 @@ def run_filter_english_patents(spark: SparkSession):
 
 def process(df: DataFrame) -> DataFrame:
     """Filter all patents without at least one title and abstract in English and flattens the schema of the result"""
+    log_language_distribution(df=df, field_name="abstract")
+    log_language_distribution(df=df, field_name="bibliographic-data.invention-title")
+    log_language_distribution(df=df, field_name="description")
+    log_language_distribution(df=df, field_name="claims")
+
     df = filter_abstracts(df)
     df = filter_titles(df)
     df = process_descriptions_claims(df, input_field="description", output_field=OUTPUT_COL_ENGLISH_DESCRIPTION)
@@ -50,11 +55,7 @@ def process(df: DataFrame) -> DataFrame:
 
 
 def filter_abstracts(df: DataFrame) -> DataFrame:
-    """
-    Removes all patents without at least one english abstract and creates a column with only the english version
-    """
-    log_language_distribution(df=df, field_name="abstract")
-
+    """Removes all patents without at least one english abstract and creates a column with only the english version"""
     target_col = sf.col("abstract")
     # Check it is array and generate otherwise. It is needed for the get_num_english_element
     if not isinstance(df.select(target_col).schema.fields[0].dataType, ArrayType):
@@ -70,11 +71,7 @@ def filter_abstracts(df: DataFrame) -> DataFrame:
 
 
 def filter_titles(df: DataFrame) -> DataFrame:
-    """
-    Removes all patents without at least one english title and creates a column with only the english version
-    """
-    log_language_distribution(df=df, field_name="bibliographic-data.invention-title")
-
+    """Removes all patents without at least one english title and creates a column with only the english version"""
     target_col = sf.col("bibliographic-data.invention-title")
     # Check it is array and generate otherwise. It is needed for the get_num_english_element
     if not isinstance(df.select(target_col).schema.fields[0].dataType, ArrayType):
@@ -94,8 +91,6 @@ def process_descriptions_claims(df: DataFrame, input_field: str, output_field: s
       <description format="machine_translation" lang="en" id="desc_en">...</description>
       <description format="original" lang="fr" id="desc_fr">...</description>
     """
-    log_language_distribution(df=df, field_name=input_field)
-
     target_col = sf.col(input_field)
     # Check it is array and generate otherwise. It is needed for the get_num_english_element
     if not isinstance(df.select(target_col).schema.fields[0].dataType, ArrayType):
@@ -130,12 +125,13 @@ def create_text_column(df: DataFrame) -> DataFrame:
 
 
 def log_language_distribution(df: DataFrame, field_name: str):
-    df = df.cache()
+    """Generates a log with the distribution of languages"""
+    logger.info(f"Getting language distribution for: {field_name}")
     if isinstance(df.select(field_name).schema.fields[0].dataType, ArrayType):
-        languages = df.select("_file", sf.explode_outer(field_name).alias("target_field"))
+        languages = df.select(sf.explode_outer(field_name).alias("target_field"))
     else:
-        languages = df.select("_file", sf.col(field_name).alias("target_field"))
-    languages_p = languages.groupby("target_field._lang").agg(sf.count("_file").alias("num")).toPandas()
+        languages = df.select(sf.col(field_name).alias("target_field"))
+    languages_p = languages.groupby("target_field._lang").count().toPandas()
     logger.info(f"Distribution of languages in {field_name}:\n{languages_p.to_string()}")
     # TODO add a language detector for titles without _lang info
 
