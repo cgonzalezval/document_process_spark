@@ -20,6 +20,7 @@ NUM_OUTPUT_FILES = 100  # TODO parametrize
 OUTPUT_COL_ENGLISH_ABSTRACT = "english_abstract"
 OUTPUT_COL_ENGLISH_TITLE = "english_title"
 OUTPUT_COL_ENGLISH_DESCRIPTION = "english_description"
+OUTPUT_COL_ENGLISH_CLAIMS = "english_claims"
 OUTPUT_COL_ENGLISH_TEXT = "english_text"
 
 
@@ -46,7 +47,8 @@ def process(df: DataFrame) -> DataFrame:
     """Filter all patents without at least one title and abstract in English and flattens the schema of the result"""
     df = filter_abstracts(df)
     df = filter_titles(df)
-    df = process_descriptions(df)
+    df = process_descriptions_claims(df, input_field="description", output_field=OUTPUT_COL_ENGLISH_DESCRIPTION)
+    df = process_descriptions_claims(df, input_field="claims", output_field=OUTPUT_COL_ENGLISH_CLAIMS)
     df = create_text_column(df)
     df = flatten_df(df)  # Flatten data to improve performance in analytic use
     return df
@@ -88,26 +90,27 @@ def filter_titles(df: DataFrame) -> DataFrame:
     return df
 
 
-def process_descriptions(df: DataFrame) -> DataFrame:
+def process_descriptions_claims(df: DataFrame, input_field: str, output_field: str) -> DataFrame:
     """
-    Creates a column with only english descriptions.
+    Creates a column with only english descriptions/claims.
     In case of non english descriptions several versions of the description are provided.
       <description format="machine_translation" lang="en" id="desc_en">...</description>
       <description format="original" lang="fr" id="desc_fr">...</description>
     """
-    log_language_distribution(df=df, field_name="description")
+    log_language_distribution(df=df, field_name=input_field)
 
-    target_col = sf.col("description")
+    target_col = sf.col(input_field)
     # Check it is array and generate otherwise. It is needed for the get_num_english_element
     if not isinstance(df.select(target_col).schema.fields[0].dataType, ArrayType):
-        df = df.withColumn("description", sf.array(target_col))
+        df = df.withColumn(input_field, sf.array(target_col))
 
-    df = df.withColumn("num_english_description", get_num_english_element(target_col))
-    # We are not filtering patents without english description.
+    col_name_num_english = f"num_english_{input_field}"
+    df = df.withColumn(col_name_num_english, get_num_english_element(target_col))
+    # We are not filtering patents without english description/claim.
     # We choose english version if possible and if not the original one
-    col = sf.when(sf.col("num_english_description") >= 0,
-                  target_col.getItem(sf.col("num_english_description"))).otherwise(target_col.getItem(0))
-    df = df.withColumn(OUTPUT_COL_ENGLISH_DESCRIPTION, col)
+    col = sf.when(sf.col(col_name_num_english) >= 0,
+                  target_col.getItem(sf.col(col_name_num_english))).otherwise(target_col.getItem(0))
+    df = df.withColumn(output_field, col)
     return df
 
 
