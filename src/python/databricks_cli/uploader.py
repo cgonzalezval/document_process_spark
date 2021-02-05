@@ -16,6 +16,7 @@ folder_azure_scritps = "azure_scripts"
 folder_resources = "resources"
 folders = [folder_code, folder_resources, folder_azure_scritps]
 for folder in folders:
+    print(f"Deleting: {folder}")
     execute(f"dbfs rm -r dbfs:/FileStore/{folder}")
     execute(f"dbfs mkdirs dbfs:/FileStore/{folder}")
 
