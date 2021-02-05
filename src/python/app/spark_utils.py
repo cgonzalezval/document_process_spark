@@ -4,6 +4,7 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import StructType, StringType, Row
 from logging import Logger
 
+from constants import DEFAULT_STORAGE_FORMAT
 from azure_utils import create_if_not_exists_container
 
 
@@ -53,7 +54,7 @@ def get_text_from_col(value):
 
 
 def save(spark: SparkSession, df: DataFrame, num_files: int, containter_name: str, storage_name: str,
-         output_folder: str, logger:Logger, output_format="parquet"):
+         output_folder: str, logger:Logger, output_format=DEFAULT_STORAGE_FORMAT):
     """Saves the DataFrame into blob storage"""
     key = spark.conf.get(f"spark.hadoop.fs.azure.account.key.{storage_name}.blob.core.windows.net")
     create_if_not_exists_container(storage_name=storage_name, key=key, container_name=containter_name, logger=logger)
@@ -63,6 +64,15 @@ def save(spark: SparkSession, df: DataFrame, num_files: int, containter_name: st
     logger.info(f"Saving data into {output_blob_folder}")
     df.coalesce(num_files).write.format(output_format).mode("overwrite").parquet(output_blob_folder)
     logger.info(f"Data saved!")
+
+
+def read(spark: SparkSession, storage_name: str, containter_name: str, output_folder: str, logger: Logger,
+         input_format=DEFAULT_STORAGE_FORMAT) -> DataFrame:
+    input_container = f"wasbs://{containter_name}@{storage_name}.blob.core.windows.net"
+    input_path = f"{input_container}/{output_folder}/"
+    logger.info(f"Reading from: {input_path}")
+    df = spark.read.format(input_format).load(input_path)
+    return df
 
 
 udf_get_text_from_col = sf.udf(lambda x: get_text_from_col(x), StringType())

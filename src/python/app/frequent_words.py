@@ -8,13 +8,14 @@ from pyspark.sql import functions as sf
 from pyspark.ml.feature import Tokenizer, StopWordsRemover
 from azure.storage.blob import BlobServiceClient
 
-from azure_utils import create_if_not_exists_container, get_account_url
+from azure_utils import get_account_url
 from constants import FILTERED_STORAGE_NAME, FILTERED_CONTAINER_NAME, FILTERED_OUTPUT_FOLDER, \
     FREQUENT_WORDS_STORAGE_NAME, FREQUENT_WORDS_STORAGE_KEY, FREQUENT_WORDS_CONTAINER_NAME, \
     FREQUENT_WORDS_OUTPUT_FILE_NAME
 from filter_english_patents import OUTPUT_COL_ENGLISH_TEXT
 from launcher import logger
 from utils import create_spark_session
+from spark_utils import read
 
 LOGGER_CHILD_NAME = "FREQUENT_WORDS"
 logger = logger.getChild(LOGGER_CHILD_NAME)
@@ -23,21 +24,14 @@ NUM_MOST_FREQUENT_WORDS = 1000
 
 def run_frequent_words(spark: SparkSession):
     logger.info("Starting execution")
-    create_if_not_exists_container(storage_name=FREQUENT_WORDS_STORAGE_NAME, key=FREQUENT_WORDS_STORAGE_KEY,
-                                   container_name=FREQUENT_WORDS_CONTAINER_NAME, logger=logger)
-    df = read(spark)
+    df = read(spark=spark, storage_name=FILTERED_STORAGE_NAME, containter_name=FILTERED_CONTAINER_NAME,
+              output_folder=FILTERED_OUTPUT_FOLDER, logger=logger)
+
     result_p = process(df)
+
     save(result_p)
     logger.info("Process finished!")
     return result_p
-
-
-def read(spark: SparkSession) -> DataFrame:
-    input_container = f"wasbs://{FILTERED_CONTAINER_NAME}@{FILTERED_STORAGE_NAME}.blob.core.windows.net"
-    input_path = f"{input_container}/{FILTERED_OUTPUT_FOLDER}/"
-    logger.info(f"Reading from: {input_path}")
-    df = spark.read.parquet(input_path)
-    return df
 
 
 def process(df: DataFrame) -> pd.DataFrame:

@@ -6,11 +6,10 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import IntegerType, ArrayType
 from pyspark.sql import functions as sf
 from constants import PARQUET_CONTAINER_NAME, PARQUET_STORAGE_NAME, PARQUET_OUTPUT_FOLDER, \
-    FILTERED_STORAGE_NAME, FILTERED_STORAGE_KEY, FILTERED_CONTAINER_NAME, FILTERED_OUTPUT_FOLDER
+    FILTERED_STORAGE_NAME, FILTERED_CONTAINER_NAME, FILTERED_OUTPUT_FOLDER
 from launcher import logger
 from utils import create_spark_session
-from spark_utils import flatten_df, udf_get_text_from_col, save
-from azure_utils import create_if_not_exists_container
+from spark_utils import flatten_df, udf_get_text_from_col, save, read
 
 
 LOGGER_CHILD_NAME = "FILTER_ENGLISH_PATENTS"
@@ -26,20 +25,13 @@ OUTPUT_COL_ENGLISH_TEXT = "english_text"
 
 def run_filter_english_patents(spark: SparkSession):
     logger.info("Starting execution")
-    df = read(spark)
+    df = read(spark=spark, storage_name=PARQUET_STORAGE_NAME, containter_name=PARQUET_CONTAINER_NAME,
+              output_folder=PARQUET_OUTPUT_FOLDER, logger=logger)
     result = process(df)
     save(spark=spark, df=result, num_files=NUM_OUTPUT_FILES, containter_name=FILTERED_CONTAINER_NAME,
          storage_name=FILTERED_STORAGE_NAME, output_folder=FILTERED_OUTPUT_FOLDER, logger=logger)
     logger.info("Process finished!")
     return result
-
-
-def read(spark: SparkSession) -> DataFrame:
-    input_container = f"wasbs://{PARQUET_CONTAINER_NAME}@{PARQUET_STORAGE_NAME}.blob.core.windows.net"
-    input_path = f"{input_container}/{PARQUET_OUTPUT_FOLDER}/"
-    logger.info(f"Reading from: {input_path}")
-    df = spark.read.parquet(input_path)
-    return df
 
 
 def process(df: DataFrame) -> DataFrame:
