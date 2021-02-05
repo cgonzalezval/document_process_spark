@@ -5,6 +5,7 @@ import zipfile
 from pyspark.sql import SparkSession
 
 ZIP_FILE_NAME = "app.zip"
+ZIP_FILE_NAME = os.path.join(os.path.dirname(os.path.realpath(__file__)), ZIP_FILE_NAME)
 
 
 def create_spark_session(name: str, local=False, config=None) -> SparkSession:
