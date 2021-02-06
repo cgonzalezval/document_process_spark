@@ -5,10 +5,11 @@ Script to generate new features
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import *
 from pyspark.sql import functions as sf
+from pyspark.ml.feature import VectorAssembler
 
 from constants import PROCESSED_TEXT_STORAGE_NAME, PROCESSED_TEXT_CONTAINER_NAME, PROCESSED_TEXT_OUTPUT_FOLDER,\
-    FILTERED_STORAGE_NAME, FILTERED_CONTAINER_NAME, FILTERED_OUTPUT_FOLDER, PROCESSED_CONTAINER_NAME,\
-    PROCESSED_STORAGE_NAME, PROCESSED_OUTPUT_FOLDER
+    FILTERED_STORAGE_NAME, FILTERED_CONTAINER_NAME, FILTERED_OUTPUT_FOLDER, FEATURES_CONTAINER_NAME,\
+    FEATURES_STORAGE_NAME, FEATURES_OUTPUT_FOLDER
 from utils import create_spark_session
 from launcher import logger
 from spark_utils import read, save
@@ -33,6 +34,12 @@ SECTIONS_CLASS_IPCR = [
     "H01", "H02", "H03", "H04", "H05", "H99",
 ]
 
+FEATURE_COLS_SECTION = [f"section_{section}" for section in SECTIONS_IPCR]
+FEATURE_COLS_SECTION_CLASS = [f"section_class_{section_class}" for section_class in SECTIONS_CLASS_IPCR]
+
+NON_TEXT_FEATURE_COLS = FEATURE_COLS_SECTION + FEATURE_COLS_SECTION_CLASS
+TEXT_FEATURE_COLS = ["flag_energy_title", "flag_energy_abstract", "flag_energy_claims"]
+
 
 def run_featurize_patents(spark: SparkSession):
     logger.info("Starting execution")
@@ -45,10 +52,15 @@ def run_featurize_patents(spark: SparkSession):
     text = process_text(text)
     total = full.join(text, ["_file"], "inner")
 
-    save(spark=spark, df=total, num_files=NUM_OUTPUT_FILES, containter_name=PROCESSED_CONTAINER_NAME,
-         storage_name=PROCESSED_STORAGE_NAME, output_folder=PROCESSED_OUTPUT_FOLDER, logger=logger)
+    assembler = VectorAssembler(
+        inputCols=NON_TEXT_FEATURE_COLS + TEXT_FEATURE_COLS + ["english_text_features"],
+        outputCol="features")
+    result = assembler.transform(total)
+
+    save(spark=spark, df=result, num_files=NUM_OUTPUT_FILES, containter_name=FEATURES_CONTAINER_NAME,
+         storage_name=FEATURES_STORAGE_NAME, output_folder=FEATURES_OUTPUT_FOLDER, logger=logger)
     logger.info("Process finished!")
-    return total
+    return result
 
 
 def process_text(df: DataFrame) -> DataFrame:
