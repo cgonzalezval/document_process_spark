@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Script to compute the most frequent words in all patents
+Script to compute the most frequent words in all patents. It reads from a text in lowercase and without stopwords
 """
 import pandas as pd
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as sf
-from pyspark.ml.feature import Tokenizer, StopWordsRemover
 from azure.storage.blob import BlobServiceClient
 
 from azure_utils import get_account_url
-from constants import FILTERED_STORAGE_NAME, FILTERED_CONTAINER_NAME, FILTERED_OUTPUT_FOLDER, \
+from constants import PROCESSED_TEXT_STORAGE_NAME, PROCESSED_TEXT_CONTAINER_NAME, PROCESSED_TEXT_OUTPUT_FOLDER, \
     FREQUENT_WORDS_STORAGE_NAME, FREQUENT_WORDS_STORAGE_KEY, FREQUENT_WORDS_CONTAINER_NAME, \
     FREQUENT_WORDS_OUTPUT_FILE_NAME
 from filter_english_patents import OUTPUT_COL_ENGLISH_TEXT
@@ -24,8 +23,8 @@ NUM_MOST_FREQUENT_WORDS = 1000
 
 def run_frequent_words(spark: SparkSession):
     logger.info("Starting execution")
-    df = read(spark=spark, storage_name=FILTERED_STORAGE_NAME, containter_name=FILTERED_CONTAINER_NAME,
-              output_folder=FILTERED_OUTPUT_FOLDER, logger=logger)
+    df = read(spark=spark, storage_name=PROCESSED_TEXT_STORAGE_NAME, containter_name=PROCESSED_TEXT_CONTAINER_NAME,
+              output_folder=PROCESSED_TEXT_OUTPUT_FOLDER, logger=logger)
 
     result_p = process(df)
 
@@ -36,15 +35,7 @@ def run_frequent_words(spark: SparkSession):
 
 def process(df: DataFrame) -> pd.DataFrame:
     """Delete stop words and compute the most frequent words over the text of all patents"""
-    df_clean = df.select('_file', OUTPUT_COL_ENGLISH_TEXT)
-    tokenizer = Tokenizer(inputCol=OUTPUT_COL_ENGLISH_TEXT, outputCol="text_token")
-    df_words_token = tokenizer.transform(df_clean)
-    remover = StopWordsRemover(inputCol="text_token", outputCol="text_clean")
-    df_words_no_stopw = remover.transform(df_words_token)
-    # Stem and lemma?
-
-    # Compute most frequent words
-    counts = df_words_no_stopw.select(sf.explode("text_clean").alias("word"))
+    counts = df.select(sf.explode_outer(f"{OUTPUT_COL_ENGLISH_TEXT}_stopwords").alias("word"))
     # TODO check num partitions
     result = counts.groupBy("word").count()
     result = result.sort(sf.col("count").desc()).limit(NUM_MOST_FREQUENT_WORDS)

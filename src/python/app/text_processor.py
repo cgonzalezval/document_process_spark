@@ -47,12 +47,19 @@ def process(df: DataFrame) -> DataFrame:
     return df
 
 
-def process_col(df, input_col, lemma):
-    """Creates a column with the result of the StopWords and another after lemmatization"""
+def process_col(df, input_col, lemma=None):
+    """
+    Creates:
+        A column with the result of the StopWords: <input_col>_stopwords
+        A column with the result of the lemmatization: <input_col>_features
+    """
+    if lemma is None:
+        lemma = LemmatizerModel.pretrained(name="lemma_antbnc", lang="en").setInputCols(["stopwords"]).setOutputCol(
+            "lemma")
     document_assembler = DocumentAssembler().setInputCol(input_col).setOutputCol("document")
     tokenizer = Tokenizer().setInputCols(["document"]).setOutputCol("token")
     # clean tokens and lowercase
-    normalizer = Normalizer().setInputCols(["token"]).setOutputCol("normalized")
+    normalizer = Normalizer().setInputCols(["token"]).setOutputCol("normalized").setLowercase(True)
     stopwords_cleaner = StopWordsCleaner().setInputCols("normalized").setOutputCol("stopwords")\
         .setCaseSensitive(False)
     # TODO move to offline
