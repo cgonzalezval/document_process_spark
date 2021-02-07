@@ -2,6 +2,7 @@
 """
 Script to generate new features
 """
+from pyspark.ml.linalg import Vectors, VectorUDT
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import *
 from pyspark.sql import functions as sf
@@ -65,11 +66,15 @@ def run_featurize_patents(spark: SparkSession):
 
 def process_text(df: DataFrame) -> DataFrame:
     """Process features extracted from text fields"""
-    df = df.withColumn("flag_energy_title", sf.array_contains("title_text_features", "energy"))
-    df = df.withColumn("flag_energy_abstract", sf.array_contains("abstract_text_features", "energy"))
-    df = df.withColumn("flag_energy_claims", sf.array_contains("claims_text_features", "energy"))
-    output_cols = ["english_text_features", "flag_energy_title", "flag_energy_abstract", "flag_energy_claims"]
-    df = df.select(output_cols)
+    df = df.withColumn("flag_energy_title", sf.array_contains("title_text_features", "energy").astype(IntegerType()))
+    df = df.withColumn("flag_energy_abstract",
+                       sf.array_contains("abstract_text_features", "energy").astype(IntegerType()))
+    df = df.withColumn("flag_energy_claims", sf.array_contains("claims_text_features", "energy").astype(IntegerType()))
+    # Assembler doesn't support array cols so we have to transform it to vector
+    list_to_vector_udf = sf.udf(lambda l: Vectors.dense(l), VectorUDT())
+    df = df.withColumn("english_text_features", list_to_vector_udf(sf.col("english_text_features")))
+    feature_cols = ["english_text_features", "flag_energy_title", "flag_energy_abstract", "flag_energy_claims"]
+    df = df.select("_file", *feature_cols)
     return df
 
 
