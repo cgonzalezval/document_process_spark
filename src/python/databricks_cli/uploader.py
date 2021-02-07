@@ -31,14 +31,14 @@ for file in os.listdir(target_folder):
 target_folder = "../azure_scripts/"
 for file in os.listdir(target_folder):
     if file.endswith(".py") or file.endswith(".zip") or file.endswith(".sh"):
-        input_file = os.path.join(target_folder, file)
+        input_file = os.path.realpath(os.path.join(target_folder, file))
         print(f"Uploading: {input_file}")
         execute(f"dbfs cp {input_file} dbfs:/FileStore/{folder_azure_scritps}/{file}")
 
 target_folder = "../../resources/"
 for file in os.listdir(target_folder):
     if file.endswith(".jar"):
-        input_file = os.path.join(target_folder, file)
+        input_file = os.path.realpath(os.path.join(target_folder, file))
         print(f"Uploading: {input_file}")
         execute(f"dbfs cp {input_file} dbfs:/FileStore/{folder_resources}/{file}")
 
