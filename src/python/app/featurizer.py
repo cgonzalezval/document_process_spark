@@ -2,11 +2,9 @@
 """
 Script to generate new features
 """
-from pyspark.ml.linalg import Vectors, VectorUDT
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import *
 from pyspark.sql import functions as sf
-from pyspark.ml.feature import VectorAssembler
 
 from constants import PROCESSED_TEXT_STORAGE_NAME, PROCESSED_TEXT_CONTAINER_NAME, PROCESSED_TEXT_OUTPUT_FOLDER,\
     FILTERED_STORAGE_NAME, FILTERED_CONTAINER_NAME, FILTERED_OUTPUT_FOLDER, FEATURES_CONTAINER_NAME,\
@@ -51,12 +49,7 @@ def run_featurize_patents(spark: SparkSession):
     text = read(spark=spark, storage_name=PROCESSED_TEXT_STORAGE_NAME, containter_name=PROCESSED_TEXT_CONTAINER_NAME,
                 output_folder=PROCESSED_TEXT_OUTPUT_FOLDER, logger=logger)
     text = process_text(text)
-    total = full.join(text, ["_file"], "inner")
-
-    assembler = VectorAssembler(
-        inputCols=NON_TEXT_FEATURE_COLS + TEXT_FEATURE_COLS + ["english_text_features"],
-        outputCol="features")
-    result = assembler.transform(total)
+    result = full.join(text, ["_file"], "inner")
 
     save(spark=spark, df=result, num_files=NUM_OUTPUT_FILES, containter_name=FEATURES_CONTAINER_NAME,
          storage_name=FEATURES_STORAGE_NAME, output_folder=FEATURES_OUTPUT_FOLDER, logger=logger)
@@ -70,9 +63,6 @@ def process_text(df: DataFrame) -> DataFrame:
     df = df.withColumn("flag_energy_abstract",
                        sf.array_contains("abstract_text_features", "energy").astype(IntegerType()))
     df = df.withColumn("flag_energy_claims", sf.array_contains("claims_text_features", "energy").astype(IntegerType()))
-    # Assembler doesn't support array cols so we have to transform it to vector
-    list_to_vector_udf = sf.udf(lambda l: Vectors.dense(l), VectorUDT())
-    df = df.withColumn("english_text_features", list_to_vector_udf(sf.col("english_text_features")))
     feature_cols = ["english_text_features", "flag_energy_title", "flag_energy_abstract", "flag_energy_claims"]
     df = df.select("_file", *feature_cols)
     return df
@@ -95,7 +85,7 @@ schema = StructType([
 def extract_ipcr(value):
     """Extract all the sections and section/class of a patent and returns all its possible values for each type"""
     if value is None:
-        return []
+        return [""], [""]
     # Return type has to be a list. Set gives null result in spark
     sections = list()
     sections_class = list()
