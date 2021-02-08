@@ -46,7 +46,7 @@ def run_energy_clustering(spark: SparkSession, list_num_topics: List[int]) -> pd
     results_log_likelihood = []
     results_log_perplexity = []
     for n in list_num_topics:
-        lda = LDA(k=n, maxIter=50)
+        lda = LDA(k=n, maxIter=100, seed=18)
         model = lda.fit(df_vectorized)
 
         ll = model.logLikelihood(df_vectorized)
@@ -65,10 +65,12 @@ def run_energy_clustering(spark: SparkSession, list_num_topics: List[int]) -> pd
         "log_likelihood": results_log_likelihood,
         "log_perplexity": results_log_perplexity,
     }
-    result = pd.DataFrame(data)
+    result_p = pd.DataFrame(data)
+    key = spark.conf.get(f"spark.hadoop.fs.azure.account.key.{TOPIC_CLUSTERING_STORAGE_NAME}.blob.core.windows.net")
+    save_results_lda(result_p, key=key, list_num_topics=list_num_topics)
 
     logger.info("Process finished!")
-    return result
+    return result_p
 
 
 def save_ml_model(spark, model, storage_name: str, container_name: str, output_folder, output_suffix):
@@ -102,7 +104,7 @@ if __name__ == '__main__':
         for n in range(1, len(sys.argv)):
             list_num_topics.append(int(sys.argv[n]))
     else:
-        list_num_topics = [2, 5, 10, 15, 20, 30, 50, 100]
+        list_num_topics = [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 30, 50, 100]
     logger.info(f"Executing with the following list of number of topics: {list_num_topics}")
     spark_session = create_spark_session("energy_clustering")
     run_energy_clustering(spark_session, list_num_topics)
