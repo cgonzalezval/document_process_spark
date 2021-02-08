@@ -2,6 +2,7 @@
 """
 Script to predict which patents are about energy consumption
 """
+from pyspark.sql import functions as sf
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.ml import PipelineModel
 
@@ -33,6 +34,17 @@ def process(df: DataFrame) -> DataFrame:
     blob_folder = f"{container_path}/{ENERGY_CLASSIFIER_OUTPUT_FOLDER}/"
     model = PipelineModel.load(blob_folder)
     result = model.transform(df)
+    result = result.cache()
+    num_pos = result.filter(sf.col("prediction") == 1)
+    num_neg = result.filter(sf.col("prediction") == 0)
+    if num_pos == 0:  # TODO parametrize. Maybe min percentage?
+        logger.warning(f"There are {num_pos} positives")
+    else:
+        logger.info(f"There are {num_pos} positives")
+    if num_neg == 0:  # TODO parametrize. Maybe min percentage?
+        logger.warning(f"There are {num_neg} negatives")
+    else:
+        logger.info(f"There are {num_neg} negatives")
     return result
 
 
