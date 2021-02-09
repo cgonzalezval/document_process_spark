@@ -149,4 +149,17 @@ It should be interesting to try semi-supervised models :
   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2248178/  
   - One-class SVMs for Document Classification: https://www.jmlr.org/papers/volume2/manevitz01a/manevitz01a.pdf   
 
-####- Clustering 
+#### Clustering 
+The last step is to identify clusters in the energy patents data. For this task literature strongly suggest to 
+use LDA because of the problems of K-means with high dimensionality and euclidean distance.
+An alternative to avoid this problem is use a dimensionality reduction technique (PCA) before clustering.
+I would like to research more about this option but since it implies to lose the reference with the original 
+words and I would have to code the inverse process (from reduced coordinates to words) I have dropped 
+this option for this task.
+
+The options implemented are:
+* CountVectorizer + LDA
+* CountVectorizer + IDF + Kmeans
+To avoid high dimensionality in the kmeans option I have limited words with minimum and maximum frequency in the 
+  countVectorizer. I also have used a cosine distanve.
+  As a result this option has created clusters easily recognizable, the results are in the EDA - Clustering.ipynb
