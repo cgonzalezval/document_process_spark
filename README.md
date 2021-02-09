@@ -11,18 +11,17 @@ The process will run once per week, with 110 million XML files.
    engineering, etc.) the patents might belong, by creating an unsupervised topic model (e.g. LDA) for the patents.
 
 ## Installation
-Requisites: python and databricks-cli (https://docs.databricks.com/dev-tools/cli/index.html) 
-1. Download the code to a local computer.
+Requisites: python and databricks-cli installed (https://docs.databricks.com/dev-tools/cli/index.html) 
+1. Download the code from github to a local computer.
 2. Configure databricks-cli
 3. Configure variables in src/python/app/constants
    * INPUT_STORAGE_NAME -> Storage Account in Azure
    * INPUT_STORAGE_KEY -> Key to access the account
    * INPUT_CONTAINER_NAME -> Container with the tgz files 
    * POSITIVE_DATA_CLASSIFIER_STORAGE_KEY 
-3. Execute src/python/databricks_cli/uploader.py -> It uploads all files to the Databricks instance.
+4. Execute src/python/databricks_cli/uploader.py -> It uploads all files to the Databricks instance.
    * It will use the following paths:  dbfs:/FileStore/code, dbfs:/FileStore/azure_scripts, dbfs:/FileStore/resources
-4. Execute src/python/databricks_cli/job_creater.py -> Creates the jobs in azure
-
+5. Execute src/python/databricks_cli/job_creator.py -> Creates the jobs in azure databricks.
 The execution is manual. 
 
 
