@@ -78,11 +78,11 @@ def save_ml_model(spark, model, storage_name: str, container_name: str, output_f
     key = spark.conf.get(f"spark.hadoop.fs.azure.account.key.{storage_name}.blob.core.windows.net")
     create_if_not_exists_container(storage_name, container_name=container_name, key=key, logger=logger)
     output_path = f"wasbs://{container_name}@{storage_name}.blob.core.windows.net/{output_folder}_{output_suffix}/"
-    model.save(output_path)
+    model.write().overwrite().save(output_path)
     logger.info(f"Model saved in: {output_path}")
 
 
-def save_results_lda(df_p: pd.DataFrame, key, list_num_topics):
+def save_results_lda(df_p: pd.DataFrame, key: str, list_num_topics: List[int]):
     """Saves a csv file to blob storage with the information of the results of all topics"""
     output_file = TOPIC_CLUSTERING_OUTPUT_LDA_RESULT_PREFIX + "_".join([str(n) for n in list_num_topics]) + ".csv"
     logger.info(f"Saving local data into {output_file}")
